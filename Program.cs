@@ -162,7 +162,7 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 
-if (app.Environment.IsDevelopment())
+if (builder.Configuration.GetValue<bool>("Server:UseSwagger"))
 {
     app.UseSwagger(options => { options.RouteTemplate = "/openapi/{documentName}.json"; });
     app.MapScalarApiReference(options =>

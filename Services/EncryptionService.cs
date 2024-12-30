@@ -3,7 +3,7 @@ using System.Text;
 
 namespace mPass_server.Services;
 
-// currently this service is used to encrypt/decrypt user data like email, salt, etc
+// currently this service is not used, so SERVER_ENCRYPTION_KEY is not required
 public class EncryptionService(IConfiguration configuration)
 {
     private readonly string?
@@ -20,7 +20,7 @@ public class EncryptionService(IConfiguration configuration)
         aes.Padding = PaddingMode.PKCS7;
 
         using var encryptor = aes.CreateEncryptor(aes.Key, null);
-        using var ms = new MemoryStream();
+        await using var ms = new MemoryStream();
         await using (var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write))
         {
             await using var writer = new StreamWriter(cs);

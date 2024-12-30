@@ -9,6 +9,7 @@
       - "8080:8080"
     environment:
       - Server__EncryptionKey=${SERVER_ENCRYPTION_KEY}
+      - Server__UseSwagger=${SERVER_USE_SWAGGER}
       - Auth__SecurityKey=${AUTH_SECURITY_KEY}
       - Auth__Issuer=${AUTH_ISSUER}
       - Smtp__Host=${SMTP_HOST}

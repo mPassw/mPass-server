@@ -15,13 +15,13 @@ public class ServicePassword
 
     [MaxLength(256)] public required string Title { get; set; }
     public List<string> Websites { get; set; } = [];
-    [MaxLength(256)] public string? Login { get; set; }
-    [MaxLength(256)] public string? Password { get; set; }
-    [MaxLength(256)] public string? Note { get; set; }
-    [MaxLength(512)] public required string Salt { get; set; }
-    [MaxLength(1024)] public required string Nonce { get; set; }
+    [MaxLength(512)] public string? Login { get; set; }
+    [MaxLength(512)] public string? Password { get; set; }
+    [MaxLength(1024)] public string? Note { get; set; }
+    [MaxLength(128)] public required string Salt { get; set; }
+    [MaxLength(128)] public required string Nonce { get; set; }
 
-    public int UserId { get; set; }
+    public required int UserId { get; set; }
 
     [ForeignKey("UserId")] public User? User { get; set; }
 }

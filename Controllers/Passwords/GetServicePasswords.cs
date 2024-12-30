@@ -13,14 +13,28 @@ namespace mPass_server.Controllers.Passwords;
 public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBase
 {
     /// <summary>
-    /// Get all passwords
+    /// Get passwords
     /// </summary>
+    /// <param name="limit">Limit the number of results</param>
+    /// <param name="offset">Offset the results</param>
+    /// <param name="orderBy">Order by title, login, createdAt</param>
+    /// <param name="orderDirection">Order direction (asc or desc)</param>
+    /// <param name="search">Search for a specific title, login or website</param>
+    /// <param name="fromDate">Filter by created date</param>
+    /// <param name="toDate">Filter by created date</param>
     [HttpGet]
     [Produces("application/json")]
     [ProducesResponseType(StatusCodes.Status200OK, Type = typeof(List<GetServicePasswordsResponsePassword>))]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<List<GetServicePasswordsResponsePassword>>> Get()
+    public async Task<ActionResult<List<GetServicePasswordsResponsePassword>>> Get(
+        [FromQuery] int? limit,
+        [FromQuery] int? offset,
+        [FromQuery] string? orderBy,
+        [FromQuery] string? orderDirection,
+        [FromQuery] string? search,
+        [FromQuery] DateTime? fromDate,
+        [FromQuery] DateTime? toDate)
     {
         var email = ControllerHelper.GetEmailFromClaims(User);
         if (email == null)
@@ -30,16 +44,58 @@ public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBa
         if (userData == null)
             return Unauthorized();
 
-        var passwords = await databaseContext.Users
+        var userWithPasswords = await databaseContext.Users
             .Include(u => u.Passwords)
             .FirstOrDefaultAsync(u => u.Id == userData.Id);
 
-        if (passwords?.Passwords == null)
+        if (userWithPasswords?.Passwords == null)
             return NotFound();
 
-        return passwords.Passwords.Select(p => new GetServicePasswordsResponsePassword
+        var query = userWithPasswords.Passwords.AsQueryable();
+
+        if (!string.IsNullOrEmpty(search))
+        {
+            query = query.Where(p =>
+                p.Title.Contains(search) ||
+                (p.Login != null && p.Login.Contains(search)) ||
+                p.Websites.Any(w => w.Contains(search)));
+        }
+
+        if (!string.IsNullOrEmpty(orderBy))
+        {
+            if (orderBy.Equals("title", StringComparison.OrdinalIgnoreCase))
+            {
+                query = "desc".Equals(orderDirection, StringComparison.OrdinalIgnoreCase)
+                    ? query.OrderByDescending(p => p.Title)
+                    : query.OrderBy(p => p.Title);
+            }
+            else if (orderBy.Equals("login", StringComparison.OrdinalIgnoreCase))
+            {
+                query = "desc".Equals(orderDirection, StringComparison.OrdinalIgnoreCase)
+                    ? query.OrderByDescending(p => p.Login)
+                    : query.OrderBy(p => p.Login);
+            }
+            else if (orderBy.Equals("createdAt", StringComparison.OrdinalIgnoreCase))
+            {
+                query = "desc".Equals(orderDirection, StringComparison.OrdinalIgnoreCase)
+                    ? query.OrderByDescending(p => p.CreatedAt)
+                    : query.OrderBy(p => p.CreatedAt);
+            }
+        }
+
+        if (offset.HasValue) query = query.Skip(offset.Value);
+        if (limit.HasValue) query = query.Take(limit.Value);
+
+        if (fromDate.HasValue)
+            query = query.Where(p => p.CreatedAt >= fromDate.Value);
+        if (toDate.HasValue)
+            query = query.Where(p => p.CreatedAt <= toDate.Value);
+
+        return query.Select(p => new GetServicePasswordsResponsePassword
         {
             Id = p.Id,
+            CreatedAt = p.CreatedAt,
+            UpdatedAt = p.UpdatedAt,
             Title = p.Title,
             Websites = p.Websites,
             Login = p.Login,
@@ -54,6 +110,8 @@ public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBa
 public class GetServicePasswordsResponsePassword
 {
     public required int Id { get; set; }
+    public required DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     public required string Title { get; set; }
     public List<string>? Websites { get; set; }
     public string? Login { get; set; }

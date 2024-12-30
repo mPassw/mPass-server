@@ -45,10 +45,10 @@ public class AddServicePassword(DatabaseContext databaseContext) : ControllerBas
             Websites = request.Websites ?? [],
             Login = request.Login,
             Password = request.Password,
-            Salt = request.Salt,
             Note = request.Note,
+            Salt = request.Salt,
+            Nonce = request.Nonce,
             UserId = userData.Id,
-            Nonce = request.Nonce
         });
         await databaseContext.SaveChangesAsync();
 
