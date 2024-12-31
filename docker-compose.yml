@@ -18,7 +18,7 @@
       - Smtp__Password=${SMTP_PASSWORD}
       - Smtp__Sender=${SMTP_SENDER}
       - Smtp__EnableSsl=${SMTP_ENABLE_SSL}
-      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mPass;Username=mpass;Password=${POSTGRES_PASSWORD}"
+      - Postgres__ConnectionString=Host=postgres;Port=5432;Database=mPass;Username=mpass;Password=${POSTGRES_PASSWORD}
       - Redis__Host=redis
       - Redis__Port=6379
       - Redis__Password=${REDIS_PASSWORD}
