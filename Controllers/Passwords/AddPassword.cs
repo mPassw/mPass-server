@@ -11,7 +11,7 @@ namespace mPass_server.Controllers.Passwords;
 [ApiController]
 [Authorize]
 [Tags("Passwords")]
-public class AddServicePassword(DatabaseContext databaseContext) : ControllerBase
+public class AddPassword(DatabaseContext databaseContext) : ControllerBase
 {
     /// <summary>
     /// Add new password
@@ -29,11 +29,11 @@ public class AddServicePassword(DatabaseContext databaseContext) : ControllerBas
 
         var email = ControllerHelper.GetEmailFromClaims(User);
         if (email == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         var userData = await databaseContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (userData == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         if (!userData.EmailVerified)
             return Forbid("Email is not verified");

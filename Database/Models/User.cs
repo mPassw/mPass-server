@@ -18,4 +18,5 @@ public class User
     [MaxLength(512)] public required string Verifier { get; set; }
 
     public List<ServicePassword>? Passwords { get; set; }
+    public List<Trash>? Trash { get; set; }
 }

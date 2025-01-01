@@ -10,16 +10,16 @@ namespace mPass_server.Controllers.Passwords;
 [ApiController]
 [Authorize]
 [Tags("Passwords")]
-public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBase
+public class GetPasswords(DatabaseContext databaseContext) : ControllerBase
 {
     /// <summary>
     /// Get passwords
     /// </summary>
     /// <param name="limit">Limit the number of results</param>
     /// <param name="offset">Offset the results</param>
-    /// <param name="orderBy">Order by title, login, createdAt</param>
+    /// <param name="orderBy">Order by title, createdAt</param>
     /// <param name="orderDirection">Order direction (asc or desc)</param>
-    /// <param name="search">Search for a specific title, login or website</param>
+    /// <param name="search">Search for a specific title, website</param>
     /// <param name="fromDate">Filter by created date</param>
     /// <param name="toDate">Filter by created date</param>
     [HttpGet]
@@ -38,18 +38,17 @@ public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBa
     {
         var email = ControllerHelper.GetEmailFromClaims(User);
         if (email == null)
-            return Unauthorized();
-
-        var userData = await databaseContext.Users.FirstOrDefaultAsync(u => u.Email == email);
-        if (userData == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         var userWithPasswords = await databaseContext.Users
             .Include(u => u.Passwords)
-            .FirstOrDefaultAsync(u => u.Id == userData.Id);
+            .FirstOrDefaultAsync(u => u.Email == email);
 
-        if (userWithPasswords?.Passwords == null)
-            return NotFound();
+        if (userWithPasswords == null)
+            return Unauthorized("Unauthorized");
+
+        if (userWithPasswords.Passwords == null)
+            return NotFound("No passwords found");
 
         var query = userWithPasswords.Passwords.AsQueryable();
 
@@ -57,7 +56,6 @@ public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBa
         {
             query = query.Where(p =>
                 p.Title.Contains(search) ||
-                (p.Login != null && p.Login.Contains(search)) ||
                 p.Websites.Any(w => w.Contains(search)));
         }
 
@@ -68,12 +66,6 @@ public class GetServicePasswords(DatabaseContext databaseContext) : ControllerBa
                 query = "desc".Equals(orderDirection, StringComparison.OrdinalIgnoreCase)
                     ? query.OrderByDescending(p => p.Title)
                     : query.OrderBy(p => p.Title);
-            }
-            else if (orderBy.Equals("login", StringComparison.OrdinalIgnoreCase))
-            {
-                query = "desc".Equals(orderDirection, StringComparison.OrdinalIgnoreCase)
-                    ? query.OrderByDescending(p => p.Login)
-                    : query.OrderBy(p => p.Login);
             }
             else if (orderBy.Equals("createdAt", StringComparison.OrdinalIgnoreCase))
             {

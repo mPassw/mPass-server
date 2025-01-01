@@ -10,7 +10,7 @@ namespace mPass_server.Controllers.Passwords;
 [ApiController]
 [Authorize]
 [Tags("Passwords")]
-public class UpdateServicePassword(DatabaseContext databaseContext) : ControllerBase
+public class UpdatePassword(DatabaseContext databaseContext) : ControllerBase
 {
     /// <summary>
     /// Update password
@@ -24,11 +24,11 @@ public class UpdateServicePassword(DatabaseContext databaseContext) : Controller
     {
         var email = ControllerHelper.GetEmailFromClaims(User);
         if (email == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         var userData = await databaseContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (userData == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         var password = await databaseContext.Users
             .Include(u => u.Passwords)
@@ -36,7 +36,7 @@ public class UpdateServicePassword(DatabaseContext databaseContext) : Controller
             .FirstOrDefaultAsync(p => p.Id == id && p.UserId == userData.Id);
 
         if (password == null)
-            return NotFound();
+            return NotFound("Password not found");
 
         if (request.Title != null)
             password.Title = request.Title;

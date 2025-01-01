@@ -7,6 +7,7 @@ public class DatabaseContext(DbContextOptions<DatabaseContext> options) : DbCont
 {
     public DbSet<User> Users { get; set; }
     public DbSet<ServicePassword> Passwords { get; set; }
+    public DbSet<Trash> Trash { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

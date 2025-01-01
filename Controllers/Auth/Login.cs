@@ -48,7 +48,7 @@ public class Login(DatabaseContext databaseContext, JwtService jwtService) : Con
 
         var userData = await databaseContext.Users.FirstOrDefaultAsync(u => u.Email == request.Email);
         if (userData == null)
-            return NotFound();
+            return NotFound("User not found");
 
         return new LoginStep1Response
         {
@@ -94,7 +94,7 @@ public class Login(DatabaseContext databaseContext, JwtService jwtService) : Con
         catch (Exception)
         {
             TempStore.ServerInstanceStorage.TryRemove(request.Email, out _);
-            return BadRequest();
+            return BadRequest("Invalid credentials");
         }
     }
 
@@ -134,7 +134,7 @@ public class Login(DatabaseContext databaseContext, JwtService jwtService) : Con
         }
         catch (Exception)
         {
-            return BadRequest();
+            return BadRequest("Invalid credentials");
         }
         finally
         {

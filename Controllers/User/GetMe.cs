@@ -23,11 +23,11 @@ public class GetMe(DatabaseContext databaseContext) : ControllerBase
     {
         var email = ControllerHelper.GetEmailFromClaims(User);
         if (email == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         var userData = await databaseContext.Users.FirstOrDefaultAsync(u => u.Email == email);
         if (userData == null)
-            return Unauthorized();
+            return Unauthorized("Unauthorized");
 
         return new GetMeResponse
         {
