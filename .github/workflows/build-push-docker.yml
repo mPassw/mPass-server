@@ -1,0 +1,118 @@
+﻿name: Build, Publish, and Create Release
+
+on:
+  workflow_dispatch
+
+permissions:
+  contents: write
+  packages: write
+
+env:
+  GITHUB_REGISTRY: ghcr.io
+  IMAGE_NAME: "mpassw/mpass-server"
+
+jobs:
+  amd64:
+    name: Build amd64
+    runs-on: ubuntu-latest
+    outputs:
+      date: ${{ env.DATE }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+
+      - name: Login to ${{ env.GITHUB_REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GITHUB_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN  }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/amd64
+          tags: |
+            ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DATE }}
+            ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  arm64:
+    name: Build arm64
+    runs-on: self-hosted
+    outputs:
+      date: ${{ env.DATE }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get current date
+        id: date
+        run: echo "DATE=$(date +'%Y.%m.%d')" >> $GITHUB_ENV
+
+      - name: Login to ${{ env.GITHUB_REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GITHUB_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN  }}
+
+      - name: Build and Push Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64
+          tags: |
+            ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ env.DATE }}-arm64
+            ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:latest-arm64
+
+  merge-manifest:
+    runs-on: ubuntu-latest
+    needs: [ amd64, arm64 ]
+    outputs:
+      release_date: ${{ needs.amd64.outputs.date }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to ${{ env.GITHUB_REGISTRY }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.GITHUB_REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN  }}
+
+      - name: Create & publish manifest on ${{ env.GITHUB_REGISTRY }}
+        run: |
+          docker buildx imagetools create \
+          --append ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.amd64.outputs.date }} \
+          --append ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.arm64.outputs.date }}-arm64 \
+          --tag ${{ env.GITHUB_REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+  create-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: merge-manifest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: "${{ needs.merge-manifest.outputs.release_date }}"
+          release_name: "${{ needs.merge-manifest.outputs.release_date }}"
+          body: |
+            Docker images for version v${{ needs.merge-manifest.outputs.release_date }} have been successfully built and pushed to GHCR.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
